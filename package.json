@@ -1,0 +1,17 @@
+{
+  "name": "bali-2026-trip-presentation",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "vite": "^6.0.0"
+  }
+}

@@ -1,0 +1,80 @@
+name: Deploy
+
+# Notes:
+# - base in vite.config.js is "/" because this site is served from a custom
+#   domain via CNAME (not a project subpath). Keep base "/" while a CNAME is set.
+# - public/CNAME is copied verbatim into dist/ by Vite automatically during build,
+#   which is what tells GitHub Pages to serve the custom domain.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment. Do not cancel an in-progress run so a
+# running production deploy is allowed to finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Build smoke test
+        run: |
+          set -euo pipefail
+          echo "Running build smoke test on dist/ ..."
+
+          if [ ! -f dist/index.html ]; then
+            echo "FAILURE: dist/index.html not found. Build did not produce an entry HTML file."
+            exit 1
+          fi
+          echo "OK: dist/index.html exists."
+
+          if ! find dist -type f -name '*.js' | grep -q .; then
+            echo "FAILURE: no JS assets found in dist/. Build output looks incomplete."
+            exit 1
+          fi
+          echo "OK: JS assets found in dist/."
+
+          echo "SUCCESS: build smoke test passed."
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
